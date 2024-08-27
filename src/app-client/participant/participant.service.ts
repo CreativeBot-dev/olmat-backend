@@ -95,6 +95,212 @@ export class ParticipantService {
     return price;
   }
 
+  // async create(
+  //   payload: CreateParticipantDTO,
+  //   user: Users,
+  //   imgs: string[],
+  //   attachments: string[],
+  // ) {
+  //   const school = await this.schoolService.findOne({
+  //     id: payload.school_id ? payload.school_id : user.school.id,
+  //   });
+  //   if (!school) throw new BadRequestException();
+
+  //   const payment = await this.paymentGatewaryService.findOne({
+  //     code: payload.payment_code,
+  //   });
+
+  //   const amount = await this.getPrice(
+  //     typeof payload.participants === 'string'
+  //       ? 1
+  //       : payload.participants.length,
+  //     school.degree,
+  //   );
+
+  //   if (!payment) {
+  //     throw new BadRequestException('invalid paymnet');
+  //   } else if (amount > payment.max_amount) {
+  //     throw new BadRequestException(
+  //       `The selected payment method is a maximum ${payment.max_amount}`,
+  //     );
+  //   } else if (amount < payment.min_amount) {
+  //     throw new BadRequestException(
+  //       `The selected payment method is a minimum ${payment.min_amount}`,
+  //     );
+  //   }
+
+  //   const payment_fee = Number(
+  //     (await this.paymentGatewaryService.getFee(amount, payment)).toFixed(),
+  //   );
+
+  //   const total_amount = amount + payment_fee;
+
+  //   const invoice = ulid();
+
+  //   const currentDate = new Date();
+  //   const expiredDate = new Date(currentDate);
+  //   expiredDate.setDate(new Date().getDate() + 1);
+  //   const formattedExpiredDate = expiredDate.toISOString();
+
+  //   let payment_action: object = {};
+
+  //   if (payment.provider === PaymentProvider.XENDIT) {
+  //     if (payment.group === PaymentGroup.QRIS) {
+  //       const res = await this.xenditService.createQRCode({
+  //         reference_id: invoice,
+  //         amount: total_amount,
+  //         type: 'DYNAMIC',
+  //         currency: 'IDR',
+  //         expires_at: formattedExpiredDate,
+  //       });
+  //       payment_action = {
+  //         id: res?.id,
+  //         type: res?.type,
+  //         channel_code: res?.channel_code,
+  //         qr_string: res?.qr_string,
+  //       };
+  //     }
+  //   }
+  //   const queryRunner = this.datasource.createQueryRunner();
+  //   await queryRunner.connect();
+  //   await queryRunner.startTransaction();
+
+  //   try {
+  //     const participantCount = await queryRunner.manager.count(Payments, {
+  //       lock: { mode: 'pessimistic_write' },
+  //     });
+  //     const payment = await queryRunner.manager.save(
+  //       queryRunner.manager.create(Payments, {
+  //         invoice,
+  //         code: payload.payment_code,
+  //         participant_amounts:
+  //           typeof payload.participants === 'string'
+  //             ? 1
+  //             : payload.participants.length,
+  //         action: payment_action,
+  //         fee: payment_fee,
+  //         total_amount,
+  //         amount,
+  //         user,
+  //       }),
+  //     );
+
+  //     const participants = [];
+
+  //     if (typeof payload.participants === 'string') {
+  //       const objParticipant: Participants = JSON.parse(payload.participants);
+  //       const res = await queryRunner.manager.save(
+  //         queryRunner.manager.create(Participants, {
+  //           id:
+  //             String(school.city.region.region_code) +
+  //             String(school.degree.id) +
+  //             rtrim0('0000', String(+participantCount + 1)),
+  //           name: objParticipant.name,
+  //           gender: objParticipant.gender,
+  //           phone: objParticipant.phone,
+  //           email: objParticipant.email,
+  //           birth: objParticipant.birth,
+  //           img: imgs[0],
+  //           user: { id: user.id },
+  //           attachment: attachments[0],
+  //           school,
+  //           payment,
+  //         }),
+  //       );
+  //       const propertiesToDelete = [
+  //         'payment',
+  //         'school',
+  //         'status',
+  //         'id',
+  //         'phone',
+  //       ];
+
+  //       propertiesToDelete.forEach((property) => {
+  //         if (res.hasOwnProperty(property)) {
+  //           delete res[property];
+  //         }
+  //       });
+  //       participants.push(res);
+  //     } else {
+  //       participants.push(
+  //         ...(await Promise.all(
+  //           payload.participants.map(async (participant, i) => {
+  //             const objParticipant: Participants = JSON.parse(participant);
+  //             const res = await queryRunner.manager.save(
+  //               queryRunner.manager.create(Participants, {
+  //                 id:
+  //                   String(school.city.region.region_code) +
+  //                   String(school.degree.id) +
+  //                   rtrim0('0000', String(+participantCount + i)),
+  //                 name: objParticipant.name,
+  //                 gender: objParticipant.gender,
+  //                 phone: objParticipant.phone,
+  //                 email: objParticipant.email,
+  //                 birth: objParticipant.birth,
+  //                 user: { id: user.id },
+  //                 img: imgs[i],
+  //                 attachment: attachments[i],
+  //                 school,
+  //                 payment,
+  //               }),
+  //             );
+  //             const propertiesToDelete = [
+  //               'payment',
+  //               'school',
+  //               'status',
+  //               'id',
+  //               'phone',
+  //             ];
+
+  //             propertiesToDelete.forEach((property) => {
+  //               if (res.hasOwnProperty(property)) {
+  //                 delete res[property];
+  //               }
+  //             });
+  //             return res;
+  //           }),
+  //         )),
+  //       );
+  //     }
+
+  //     await queryRunner.commitTransaction();
+  //     delete payment.user;
+  //     return {
+  //       payment,
+  //       participants,
+  //     };
+  //   } catch (error: any) {
+  //     await queryRunner.rollbackTransaction();
+  //     imgs.map(async (img) => {
+  //       await unlink('./storage/imgs/' + img, (err) => {
+  //         if (err) throw err;
+  //       });
+  //     });
+  //     attachments.map(async (attachment) => {
+  //       await unlink('./storage/attachments/' + attachment, (err) => {
+  //         if (err) throw err;
+  //       });
+  //     });
+  //     let extractedString: string | undefined;
+  //     if (error.code === 'ER_DUP_ENTRY') {
+  //       const regex = /'([^']+)'/;
+  //       const match = error.sqlMessage.match(regex);
+  //       if (match && match.length > 1) {
+  //         extractedString = match[1];
+  //       }
+  //       throw new ErrorException(
+  //         {
+  //           message: `${extractedString} is already to use!`,
+  //         },
+  //         509,
+  //       );
+  //     }
+  //     throw new InternalServerErrorException();
+  //   } finally {
+  //     await queryRunner.release();
+  //   }
+  // }
+
   async create(
     payload: CreateParticipantDTO,
     user: Users,
@@ -118,14 +324,14 @@ export class ParticipantService {
     );
 
     if (!payment) {
-      throw new BadRequestException('invalid paymnet');
+      throw new BadRequestException('Invalid payment method.');
     } else if (amount > payment.max_amount) {
       throw new BadRequestException(
-        `The selected payment method is a maximum ${payment.max_amount}`,
+        `The selected payment method has a maximum limit of ${payment.max_amount}.`,
       );
     } else if (amount < payment.min_amount) {
       throw new BadRequestException(
-        `The selected payment method is a minimum ${payment.min_amount}`,
+        `The selected payment method has a minimum limit of ${payment.min_amount}.`,
       );
     }
 
@@ -161,6 +367,7 @@ export class ParticipantService {
         };
       }
     }
+
     const queryRunner = this.datasource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -169,6 +376,7 @@ export class ParticipantService {
       const participantCount = await queryRunner.manager.count(Payments, {
         lock: { mode: 'pessimistic_write' },
       });
+
       const payment = await queryRunner.manager.save(
         queryRunner.manager.create(Payments, {
           invoice,
@@ -222,45 +430,43 @@ export class ParticipantService {
         });
         participants.push(res);
       } else {
-        participants.push(
-          ...(await Promise.all(
-            payload.participants.map(async (participant, i) => {
-              const objParticipant: Participants = JSON.parse(participant);
-              const res = await queryRunner.manager.save(
-                queryRunner.manager.create(Participants, {
-                  id:
-                    String(school.city.region.region_code) +
-                    String(school.degree.id) +
-                    rtrim0('0000', String(+participantCount + i)),
-                  name: objParticipant.name,
-                  gender: objParticipant.gender,
-                  phone: objParticipant.phone,
-                  email: objParticipant.email,
-                  birth: objParticipant.birth,
-                  user: { id: user.id },
-                  img: imgs[i],
-                  attachment: attachments[i],
-                  school,
-                  payment,
-                }),
-              );
-              const propertiesToDelete = [
-                'payment',
-                'school',
-                'status',
-                'id',
-                'phone',
-              ];
-
-              propertiesToDelete.forEach((property) => {
-                if (res.hasOwnProperty(property)) {
-                  delete res[property];
-                }
-              });
-              return res;
+        for (let i = 0; i < payload.participants.length; i++) {
+          const objParticipant: Participants = JSON.parse(
+            payload.participants[i],
+          );
+          const res = await queryRunner.manager.save(
+            queryRunner.manager.create(Participants, {
+              id:
+                String(school.city.region.region_code) +
+                String(school.degree.id) +
+                rtrim0('0000', String(+participantCount + i + 1)),
+              name: objParticipant.name,
+              gender: objParticipant.gender,
+              phone: objParticipant.phone,
+              email: objParticipant.email,
+              birth: objParticipant.birth,
+              user: { id: user.id },
+              img: imgs[i],
+              attachment: attachments[i],
+              school,
+              payment,
             }),
-          )),
-        );
+          );
+          const propertiesToDelete = [
+            'payment',
+            'school',
+            'status',
+            'id',
+            'phone',
+          ];
+
+          propertiesToDelete.forEach((property) => {
+            if (res.hasOwnProperty(property)) {
+              delete res[property];
+            }
+          });
+          participants.push(res);
+        }
       }
 
       await queryRunner.commitTransaction();
@@ -290,7 +496,7 @@ export class ParticipantService {
         }
         throw new ErrorException(
           {
-            message: `${extractedString} is already to use!`,
+            message: `${extractedString} is already in use!`,
           },
           509,
         );
