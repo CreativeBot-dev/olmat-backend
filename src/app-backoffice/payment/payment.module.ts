@@ -8,5 +8,6 @@ import { Payments } from 'src/entities/payments.entity';
   imports: [TypeOrmModule.forFeature([Payments])],
   controllers: [PaymentController],
   providers: [PaymentService],
+  exports: [PaymentService],
 })
 export class PaymentModule {}

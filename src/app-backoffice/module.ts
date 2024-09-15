@@ -14,6 +14,7 @@ import { SettingModule } from 'src/core/setting/setting.module';
 import { PaymentGatewayModule } from './payment-gateway/payment-gateway.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { EventSettingModule } from 'src/core/event-setting/event-setting.module';
+import { RegisterModule } from './register/register.module';
 
 export const BackofficeModules = [
   AuthAdminModule,
@@ -32,4 +33,5 @@ export const BackofficeModules = [
   SettingModule,
   PaymentGatewayModule,
   DashboardModule,
+  RegisterModule,
 ];

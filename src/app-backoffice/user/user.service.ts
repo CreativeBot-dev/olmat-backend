@@ -54,7 +54,10 @@ export class UserService {
   async findOne(
     condition: EntityCondition<Users>,
   ): Promise<NullableType<Users>> {
-    return await this.repository.findOne({ where: condition });
+    return await this.repository.findOne({
+      where: condition,
+      relations: { school: true },
+    });
   }
 
   async delete(id: string): Promise<void> {
