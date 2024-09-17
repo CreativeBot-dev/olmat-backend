@@ -62,7 +62,10 @@ export class ParticipantService {
   async findOne(
     condition: EntityCondition<Participants>,
   ): Promise<NullableType<Participants>> {
-    return await this.repository.findOne({ where: condition });
+    return await this.repository.findOne({
+      where: condition,
+      relations: { user: true },
+    });
   }
 
   async update(
