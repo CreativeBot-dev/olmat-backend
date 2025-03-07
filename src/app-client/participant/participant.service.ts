@@ -395,19 +395,24 @@ export class ParticipantService {
 
       const participants = [];
 
-      if (typeof payload.participants === 'string') {
+      console.log(JSON.parse(payload.participants).length);
+      console.log(payload.participants.length);
+
+      if (JSON.parse(payload.participants).length === 1) {
+        console.log('first');
         const objParticipant: Participants = JSON.parse(payload.participants);
+        console.log(objParticipant);
         const res = await queryRunner.manager.save(
           queryRunner.manager.create(Participants, {
             id:
               String(school.city.region.region_code) +
               String(school.degree.id) +
               rtrim0('0000', String(+participantCount + 1)),
-            name: objParticipant.name,
-            gender: objParticipant.gender,
-            phone: objParticipant.phone,
-            email: objParticipant.email,
-            birth: objParticipant.birth,
+            name: objParticipant[0].name,
+            gender: objParticipant[0].gender,
+            phone: objParticipant[0].phone,
+            email: objParticipant[0].email,
+            birth: objParticipant[0].birth,
             img: imgs[0],
             user: { id: user.id },
             attachment: attachments[0],
@@ -415,6 +420,7 @@ export class ParticipantService {
             payment,
           }),
         );
+        console.log(res);
         const propertiesToDelete = [
           'payment',
           'school',
@@ -430,21 +436,22 @@ export class ParticipantService {
         });
         participants.push(res);
       } else {
-        for (let i = 0; i < payload.participants.length; i++) {
-          const objParticipant: Participants = JSON.parse(
-            payload.participants[i],
-          );
+        console.log('first');
+        const objParticipant: Participants[] = JSON.parse(payload.participants);
+        for (let i = 0; i < objParticipant.length; i++) {
+          console.log(payload.participants);
+          console.log(objParticipant);
           const res = await queryRunner.manager.save(
             queryRunner.manager.create(Participants, {
               id:
                 String(school.city.region.region_code) +
                 String(school.degree.id) +
                 rtrim0('0000', String(+participantCount + i + 1)),
-              name: objParticipant.name,
-              gender: objParticipant.gender,
-              phone: objParticipant.phone,
-              email: objParticipant.email,
-              birth: objParticipant.birth,
+              name: objParticipant[i].name,
+              gender: objParticipant[i].gender,
+              phone: objParticipant[i].phone,
+              email: objParticipant[i].email,
+              birth: objParticipant[i].birth,
               user: { id: user.id },
               img: imgs[i],
               attachment: attachments[i],
@@ -452,6 +459,7 @@ export class ParticipantService {
               payment,
             }),
           );
+          console.log(res);
           const propertiesToDelete = [
             'payment',
             'school',
@@ -476,6 +484,7 @@ export class ParticipantService {
         participants,
       };
     } catch (error: any) {
+      console.log(error);
       await queryRunner.rollbackTransaction();
       imgs.map(async (img) => {
         await unlink('./storage/imgs/' + img, (err) => {
