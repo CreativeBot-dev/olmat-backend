@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Users } from 'src/entities/users.entity';
 import { ParticipantStatus } from 'src/shared/enums/participants.enum';
 import { DataSource } from 'typeorm';
-import { PaymentService } from '../payment/payment.service';
 import { EventSettingService } from '../event-setting/event-setting.service';
 import { PaymentStatus } from 'src/shared/enums/payment.enum';
 
@@ -10,7 +9,6 @@ import { PaymentStatus } from 'src/shared/enums/payment.enum';
 export class DashboardService {
   constructor(
     private datasource: DataSource,
-    private paymentService: PaymentService,
     private eventSettings: EventSettingService,
   ) {}
   async getDashboardData(user: Users) {

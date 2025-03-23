@@ -53,7 +53,7 @@ export class AuthUserService {
   OTPConfig: ValidTotpConfig = {
     algo: 'sha1',
     digits: 6,
-    period: this.config.otpExpires ?? 120,
+    period: this.config.otpExpires ?? 900,
     secretSize: 10,
   };
 
