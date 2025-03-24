@@ -9,8 +9,8 @@ import {
   ParseIntPipe,
   Post,
   Query,
-  Req,
   SerializeOptions,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -21,7 +21,6 @@ import { Participants } from 'src/entities/participants.entity';
 import { customPagination } from 'src/shared/utils/pagination';
 import { NullableType } from 'src/shared/types/nullable.type';
 import { CreateParticipantDTO } from './dto/create-participant.dto';
-// import { FilesInterceptor } from '@nestjs/platform-express';
 import { SessionUser } from 'src/shared/decorators/user.decorator';
 import { Users } from 'src/entities/users.entity';
 import { AuthUserGuard } from 'src/shared/guards/auth.guard';
@@ -102,15 +101,56 @@ export class ParticipantController {
   async create(
     @Body() data: CreateParticipantDTO,
     @SessionUser() user: Users,
-    @Req() req: { imgFileNames: string[]; attachmentFileNames: string[] },
+    @UploadedFiles()
+    files: {
+      imgs?: Express.Multer.File[];
+      attachments?: Express.Multer.File[];
+    },
   ) {
+    // Ekstrak nama file dari objek file
+    const imgFileNames = files.imgs
+      ? files.imgs.map((file) => file.filename)
+      : [];
+    const attachmentFileNames = files.attachments
+      ? files.attachments.map((file) => file.filename)
+      : [];
+
+    console.log('Image files:', imgFileNames);
+    console.log('Attachment files:', attachmentFileNames);
+
     return await this.participantService.create(
       data,
       user,
-      req.imgFileNames,
-      req.attachmentFileNames,
+      imgFileNames,
+      attachmentFileNames,
     );
   }
+
+  // @SerializeOptions({
+  //   groups: ['admin'],
+  // })
+  // @HttpCode(HttpStatus.CREATED)
+  // @Post()
+  // @ApiConsumes('multipart/form-data')
+  // @UseInterceptors(
+  //   FileFieldsInterceptor([
+  //     { name: 'imgs', maxCount: 100 },
+  //     { name: 'attachments', maxCount: 100 },
+  //   ]),
+  // )
+  // async create(
+  //   @Body() data: CreateParticipantDTO,
+  //   @SessionUser() user: Users,
+  //   @Req() req: { imgFileNames: string[]; attachmentFileNames: string[] },
+  // ) {
+  //   console.log('cokki', req.imgFileNames);
+  //   return await this.participantService.create(
+  //     data,
+  //     user,
+  //     req.imgFileNames,
+  //     req.attachmentFileNames,
+  //   );
+  // }
 
   @Post('regenerate-payment')
   async regeneratePayment(

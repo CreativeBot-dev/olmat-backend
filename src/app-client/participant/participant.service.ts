@@ -307,6 +307,9 @@ export class ParticipantService {
     imgs: string[],
     attachments: string[],
   ) {
+    console.log('load', payload);
+    console.log('imgas', imgs);
+    console.log('att', attachments);
     const school = await this.schoolService.findOne({
       id: payload.school_id ? payload.school_id : user.school.id,
     });
@@ -399,9 +402,9 @@ export class ParticipantService {
       console.log(payload.participants.length);
 
       if (JSON.parse(payload.participants).length === 1) {
-        console.log('first');
+        console.log('first 1');
         const objParticipant: Participants = JSON.parse(payload.participants);
-        console.log(objParticipant);
+        console.log('obj part', objParticipant);
         const res = await queryRunner.manager.save(
           queryRunner.manager.create(Participants, {
             id:
@@ -436,11 +439,12 @@ export class ParticipantService {
         });
         participants.push(res);
       } else {
-        console.log('first');
+        console.log('first2');
         const objParticipant: Participants[] = JSON.parse(payload.participants);
         for (let i = 0; i < objParticipant.length; i++) {
-          console.log(payload.participants);
-          console.log(objParticipant);
+          console.log('pay 2', payload.participants);
+          console.log(`imgs 2`, imgs[i]);
+          console.log('obj part2', objParticipant);
           const res = await queryRunner.manager.save(
             queryRunner.manager.create(Participants, {
               id:
