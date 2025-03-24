@@ -115,9 +115,6 @@ export class ParticipantController {
       ? files.attachments.map((file) => file.filename)
       : [];
 
-    console.log('Image files:', imgFileNames);
-    console.log('Attachment files:', attachmentFileNames);
-
     return await this.participantService.create(
       data,
       user,

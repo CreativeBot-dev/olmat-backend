@@ -54,7 +54,6 @@ export class ParticipantService {
         },
       });
     } catch (error) {
-      console.log(error);
       throw new InternalServerErrorException();
     }
   }

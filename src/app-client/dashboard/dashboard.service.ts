@@ -27,7 +27,7 @@ export class DashboardService {
         event_setting: eventDate,
       });
     } catch (error) {
-      console.log(error);
+      throw error;
     }
   }
 }

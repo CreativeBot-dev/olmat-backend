@@ -6,7 +6,7 @@ import {
 import { IPaginationOptions } from 'src/shared/types/pagination-options';
 import { Payments } from 'src/entities/payments.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { EntityCondition } from 'src/shared/types/entity-condition.type';
 import { NullableType } from 'src/shared/types/nullable.type';
 import { Users } from 'src/entities/users.entity';
@@ -52,9 +52,33 @@ export class PaymentService {
         amount: true,
         total_amount: true,
         status: true,
+        audit_trail: { created_at: true },
       },
       where: { user: { id: user.id } },
     });
+  }
+
+  async generateInvoiceNumber(): Promise<string> {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0'); // MM
+    const day = String(now.getDate()).padStart(2, '0'); // DD
+    const year = String(now.getFullYear()).slice(2); // YY
+    const prefix = `OLM-${month}${day}${year}`;
+
+    const yearStart = new Date(now.getFullYear(), 0, 1);
+    const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+
+    const count = await this.paymentRepository.count({
+      where: {
+        audit_trail: {
+          created_at: Between(yearStart, yearEnd),
+        },
+      },
+    });
+
+    const sequence = String(count + 1).padStart(6, '0');
+
+    return `${prefix}${sequence}`;
   }
 
   async delete(condition: EntityCondition<Payments>): Promise<void> {

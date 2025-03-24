@@ -147,7 +147,6 @@ export class UserService {
       await this.cacheService.set('FORGOT:' + user.email, { otp_counter: 0 });
       return { message: 'Password updated successfully' };
     } catch (error) {
-      console.log(error);
       throw new BadRequestException('Failed to update password');
     }
   }

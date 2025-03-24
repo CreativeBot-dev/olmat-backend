@@ -307,9 +307,6 @@ export class ParticipantService {
     imgs: string[],
     attachments: string[],
   ) {
-    console.log('load', payload);
-    console.log('imgas', imgs);
-    console.log('att', attachments);
     const school = await this.schoolService.findOne({
       id: payload.school_id ? payload.school_id : user.school.id,
     });
@@ -344,7 +341,7 @@ export class ParticipantService {
 
     const total_amount = amount + payment_fee;
 
-    const invoice = ulid();
+    const invoice = await this.paymentService.generateInvoiceNumber();
 
     const currentDate = new Date();
     const expiredDate = new Date(currentDate);
@@ -398,13 +395,8 @@ export class ParticipantService {
 
       const participants = [];
 
-      console.log(JSON.parse(payload.participants).length);
-      console.log(payload.participants.length);
-
       if (JSON.parse(payload.participants).length === 1) {
-        console.log('first 1');
         const objParticipant: Participants = JSON.parse(payload.participants);
-        console.log('obj part', objParticipant);
         const res = await queryRunner.manager.save(
           queryRunner.manager.create(Participants, {
             id:
@@ -423,7 +415,6 @@ export class ParticipantService {
             payment,
           }),
         );
-        console.log(res);
         const propertiesToDelete = [
           'payment',
           'school',
@@ -439,12 +430,8 @@ export class ParticipantService {
         });
         participants.push(res);
       } else {
-        console.log('first2');
         const objParticipant: Participants[] = JSON.parse(payload.participants);
         for (let i = 0; i < objParticipant.length; i++) {
-          console.log('pay 2', payload.participants);
-          console.log(`imgs 2`, imgs[i]);
-          console.log('obj part2', objParticipant);
           const res = await queryRunner.manager.save(
             queryRunner.manager.create(Participants, {
               id:
@@ -463,7 +450,6 @@ export class ParticipantService {
               payment,
             }),
           );
-          console.log(res);
           const propertiesToDelete = [
             'payment',
             'school',
@@ -488,7 +474,6 @@ export class ParticipantService {
         participants,
       };
     } catch (error: any) {
-      console.log(error);
       await queryRunner.rollbackTransaction();
       imgs.map(async (img) => {
         await unlink('./storage/imgs/' + img, (err) => {
