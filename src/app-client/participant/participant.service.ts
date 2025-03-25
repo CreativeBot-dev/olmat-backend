@@ -307,6 +307,8 @@ export class ParticipantService {
     imgs: string[],
     attachments: string[],
   ) {
+    const objParticipant: Participants[] = JSON.parse(payload.participants);
+
     const school = await this.schoolService.findOne({
       id: payload.school_id ? payload.school_id : user.school.id,
     });
@@ -316,12 +318,7 @@ export class ParticipantService {
       code: payload.payment_code,
     });
 
-    const amount = await this.getPrice(
-      typeof payload.participants === 'string'
-        ? 1
-        : payload.participants.length,
-      school.degree,
-    );
+    const amount = await this.getPrice(objParticipant.length, school.degree);
 
     if (!payment) {
       throw new BadRequestException('Invalid payment method.');
@@ -381,10 +378,7 @@ export class ParticipantService {
         queryRunner.manager.create(Payments, {
           invoice,
           code: payload.payment_code,
-          participant_amounts:
-            typeof payload.participants === 'string'
-              ? 1
-              : payload.participants.length,
+          participant_amounts: objParticipant.length,
           action: payment_action,
           fee: payment_fee,
           total_amount,
@@ -395,8 +389,7 @@ export class ParticipantService {
 
       const participants = [];
 
-      if (JSON.parse(payload.participants).length === 1) {
-        const objParticipant: Participants = JSON.parse(payload.participants);
+      if (objParticipant.length === 1) {
         const res = await queryRunner.manager.save(
           queryRunner.manager.create(Participants, {
             id:
@@ -430,7 +423,6 @@ export class ParticipantService {
         });
         participants.push(res);
       } else {
-        const objParticipant: Participants[] = JSON.parse(payload.participants);
         for (let i = 0; i < objParticipant.length; i++) {
           const res = await queryRunner.manager.save(
             queryRunner.manager.create(Participants, {
