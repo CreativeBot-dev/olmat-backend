@@ -18,7 +18,7 @@ export class DashboardService {
                   SELECT (SELECT COUNT(*) FROM participants WHERE status = '${ParticipantStatus.ACTIVE}' AND user_id = ${user.id}) as success_participant,
                   (SELECT COUNT(*) FROM participants WHERE status = '${ParticipantStatus.PENDING}' AND user_id = ${user.id}) AS pending_participant,
                   (SELECT COUNT(*) FROM payments WHERE status = '${PaymentStatus.PAID}' AND user_id = ${user.id}) AS success_payment,
-                  (SELECT COUNT(*) FROM payments WHERE status = '${PaymentStatus.PENDING}' AND user_id = ${user.id}) AS pending_payment
+                  (SELECT COUNT(*) FROM payments WHERE user_id = ${user.id}) AS all_payment
                   ;`;
     try {
       const res = await this.datasource.query(dashboardQuery);
