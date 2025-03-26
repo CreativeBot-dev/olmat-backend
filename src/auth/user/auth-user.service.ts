@@ -288,6 +288,7 @@ export class AuthUserService {
       name: user.name,
       school: user.school,
       access: 'user',
+      type: user.type.toLowerCase(),
     });
 
     await this.cacheService.set(
