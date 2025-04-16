@@ -30,7 +30,7 @@ import { LoginResponseType } from 'src/shared/types/auth/login-response.type';
 import { ErrorException } from 'src/shared/exceptions/error.exception';
 import { compare } from 'src/shared/utils/hash';
 import { UpdateUserAuthDTO } from './dto/update-user-auth.dto';
-import { EmailForgotPasswordEvent } from '../events/email-forgot-password.event copy';
+import { EmailForgotPasswordEvent } from '../events/email-forgot-password.event';
 import {
   generateHash,
   generateRandomString,
