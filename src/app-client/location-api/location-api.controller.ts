@@ -73,7 +73,7 @@ export class LocationApiController {
     return await this.locationService.getRegionByCityId(city_id);
   }
 
-  @Get('region')
+  @Get('regions')
   @HttpCode(HttpStatus.OK)
   async getAllRegion(): Promise<Regions[]> {
     return await this.locationService.getAllRegions();

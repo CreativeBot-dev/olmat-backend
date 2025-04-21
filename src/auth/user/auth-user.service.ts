@@ -323,7 +323,7 @@ export class AuthUserService {
 
     if (userDto.password) {
       if (userDto.currentPassword) {
-        const isValidCurrentPassword = compare(
+        const isValidCurrentPassword = await compare(
           userDto.currentPassword,
           currentUser.password,
         );

@@ -60,9 +60,6 @@ export class LocationApiService {
   }
 
   async getAllRegions(): Promise<Regions[]> {
-    console.log('first');
-    const all = await this.regionService.findAll();
-    console.log('this', all);
-    return await this.regionService.findAll();
+    return await this.regionService.findAllRegions();
   }
 }
