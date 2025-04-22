@@ -61,6 +61,7 @@ export class SchoolService {
   async getSchoolBySubdistrict(subdistrict_id: string): Promise<Schools[]> {
     return await this.repository.find({
       where: { subdistrict: { id: subdistrict_id }, is_accept: true },
+      relations: { degree: true },
     });
   }
 

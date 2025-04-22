@@ -339,7 +339,7 @@ export class AuthUserService {
         if (userDto.password == userDto.currentPassword) {
           throw new ErrorException(
             {
-              password: 'password not changed',
+              password: 'password must different with currentPassword',
             },
             HttpStatus.UNPROCESSABLE_ENTITY,
           );
