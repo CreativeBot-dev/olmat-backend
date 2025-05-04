@@ -12,6 +12,12 @@ export class Regions {
   name: string;
 
   @Column()
+  captain: string;
+
+  @Column()
+  contact: string;
+
+  @Column()
   region_code: string;
 
   @OneToMany(() => Cities, (city) => city.region)

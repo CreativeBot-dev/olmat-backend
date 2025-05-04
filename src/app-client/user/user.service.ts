@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ErrorException } from 'src/shared/exceptions/error.exception';
-import { compare, hash } from 'bcrypt';
+import { compare } from 'bcrypt';
 import { CacheService } from 'src/core/cache/cache.service';
 import { UpdateForgetPassDTO } from 'src/auth/user/dto/update-forget-password.dto';
 
@@ -99,7 +99,7 @@ export class UserService {
           HttpStatus.UNPROCESSABLE_ENTITY,
         );
       }
-      user.password = await hash(payload.password, 10);
+      user.password = payload.password;
     }
 
     try {
@@ -147,7 +147,6 @@ export class UserService {
       await this.cacheService.set('FORGOT:' + user.email, { otp_counter: 0 });
       return { message: 'Password updated successfully' };
     } catch (error) {
-      console.log(error);
       throw new BadRequestException('Failed to update password');
     }
   }

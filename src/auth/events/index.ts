@@ -1,2 +1,2 @@
 export * from './email-otp.event';
-export * from './email-forgot-password.event copy';
+export * from './email-forgot-password.event';

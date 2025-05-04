@@ -5,7 +5,7 @@ import { IsNotEmpty, IsOptional } from 'class-validator';
 export class CreateParticipantDTO {
   @ApiProperty()
   @IsNotEmpty()
-  participants: any[];
+  participants: any;
 
   @ApiProperty({ required: false, description: 'required for admin only' })
   @IsOptional()

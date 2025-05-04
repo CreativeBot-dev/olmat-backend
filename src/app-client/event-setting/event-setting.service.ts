@@ -10,8 +10,8 @@ export class EventSettingService {
     private eventSettingRepo: Repository<EventSettings>,
   ) {}
 
-  async findStartEndDate(): Promise<EventSettings[]> {
-    return await this.eventSettingRepo.find({
+  async findStartEndDate(): Promise<EventSettings> {
+    return await this.eventSettingRepo.findOne({
       select: { name: true, start: true, end: true, free: true, amount: true },
       where: {},
     });

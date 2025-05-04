@@ -8,6 +8,7 @@ import { SchoolModule } from 'src/app-backoffice/school/school.module';
 import { DegreeModule } from 'src/app-backoffice/degree/degree.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Cities } from 'src/entities/cities.entity';
+import { RegionModule } from 'src/app-backoffice/region/region.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { Cities } from 'src/entities/cities.entity';
     SubdistrictModule,
     SchoolModule,
     DegreeModule,
+    RegionModule,
   ],
   providers: [LocationApiService],
   controllers: [LocationApiController],

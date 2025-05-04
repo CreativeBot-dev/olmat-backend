@@ -307,6 +307,8 @@ export class ParticipantService {
     imgs: string[],
     attachments: string[],
   ) {
+    const objParticipant: Participants[] = JSON.parse(payload.participants);
+
     const school = await this.schoolService.findOne({
       id: payload.school_id ? payload.school_id : user.school.id,
     });
@@ -316,12 +318,7 @@ export class ParticipantService {
       code: payload.payment_code,
     });
 
-    const amount = await this.getPrice(
-      typeof payload.participants === 'string'
-        ? 1
-        : payload.participants.length,
-      school.degree,
-    );
+    const amount = await this.getPrice(objParticipant.length, school.degree);
 
     if (!payment) {
       throw new BadRequestException('Invalid payment method.');
@@ -341,7 +338,7 @@ export class ParticipantService {
 
     const total_amount = amount + payment_fee;
 
-    const invoice = ulid();
+    const invoice = await this.paymentService.generateInvoiceNumber();
 
     const currentDate = new Date();
     const expiredDate = new Date(currentDate);
@@ -381,10 +378,7 @@ export class ParticipantService {
         queryRunner.manager.create(Payments, {
           invoice,
           code: payload.payment_code,
-          participant_amounts:
-            typeof payload.participants === 'string'
-              ? 1
-              : payload.participants.length,
+          participant_amounts: objParticipant.length,
           action: payment_action,
           fee: payment_fee,
           total_amount,
@@ -395,19 +389,18 @@ export class ParticipantService {
 
       const participants = [];
 
-      if (typeof payload.participants === 'string') {
-        const objParticipant: Participants = JSON.parse(payload.participants);
+      if (objParticipant.length === 1) {
         const res = await queryRunner.manager.save(
           queryRunner.manager.create(Participants, {
             id:
               String(school.city.region.region_code) +
               String(school.degree.id) +
               rtrim0('0000', String(+participantCount + 1)),
-            name: objParticipant.name,
-            gender: objParticipant.gender,
-            phone: objParticipant.phone,
-            email: objParticipant.email,
-            birth: objParticipant.birth,
+            name: objParticipant[0].name,
+            gender: objParticipant[0].gender,
+            phone: objParticipant[0].phone,
+            email: objParticipant[0].email,
+            birth: objParticipant[0].birth,
             img: imgs[0],
             user: { id: user.id },
             attachment: attachments[0],
@@ -430,21 +423,18 @@ export class ParticipantService {
         });
         participants.push(res);
       } else {
-        for (let i = 0; i < payload.participants.length; i++) {
-          const objParticipant: Participants = JSON.parse(
-            payload.participants[i],
-          );
+        for (let i = 0; i < objParticipant.length; i++) {
           const res = await queryRunner.manager.save(
             queryRunner.manager.create(Participants, {
               id:
                 String(school.city.region.region_code) +
                 String(school.degree.id) +
                 rtrim0('0000', String(+participantCount + i + 1)),
-              name: objParticipant.name,
-              gender: objParticipant.gender,
-              phone: objParticipant.phone,
-              email: objParticipant.email,
-              birth: objParticipant.birth,
+              name: objParticipant[i].name,
+              gender: objParticipant[i].gender,
+              phone: objParticipant[i].phone,
+              email: objParticipant[i].email,
+              birth: objParticipant[i].birth,
               user: { id: user.id },
               img: imgs[i],
               attachment: attachments[i],

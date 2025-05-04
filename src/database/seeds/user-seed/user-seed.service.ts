@@ -16,7 +16,7 @@ export class UserSeedService {
         queryRunner.manager.create(Users, {
           name: 'User One',
           email: 'user@gmail.com',
-          password: 'ggwp',
+          password: 'qweqweqwe',
           phone: '08168',
           type: 'Admin',
           region: { id: 'SBY' },
