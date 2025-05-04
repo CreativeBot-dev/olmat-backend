@@ -4,7 +4,7 @@ FROM node:20.17.0 AS base
 FROM base AS builder
 WORKDIR /app
 COPY . .
-RUN cp .env.example .env && yarn && yarn build
+# RUN cp .env.example .env && yarn && yarn build
 
 # FROM base AS dev
 # WORKDIR /app
