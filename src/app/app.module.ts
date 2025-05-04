@@ -45,7 +45,7 @@ import mailConfig from 'src/shared/config/mail.config';
         max: configService.get('cache.max', { infer: true }),
         ttl: configService.get('cache.ttl', { infer: true }),
         port: configService.get('cache.port', { infer: true }),
-        // auth_pass: configService.get('cache.auth_pass', { infer: true }),
+        auth_pass: configService.get('cache.auth_pass', { infer: true }),
         db: configService.get('cache.db', { infer: true }),
       }),
       imports: [ConfigModule],
