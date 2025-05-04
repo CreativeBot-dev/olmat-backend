@@ -5,6 +5,7 @@ import { Cities } from 'src/entities/cities.entity';
 import { Subdistricts } from 'src/entities/subdistricts.entity';
 import { Schools } from 'src/entities/schools.entity';
 import { Degree } from 'src/entities/degree.entity';
+import { Regions } from 'src/entities/regions.entity';
 
 @ApiTags('Location API')
 // @ApiBearerAuth()
@@ -58,5 +59,23 @@ export class LocationApiController {
     @Param('region_id') region_id: string,
   ): Promise<Cities[]> {
     return await this.locationService.getCitiesByRegion(region_id);
+  }
+
+  @Get('cities')
+  @HttpCode(HttpStatus.OK)
+  async getAllCities(): Promise<Cities[]> {
+    return await this.locationService.getAllCities();
+  }
+
+  @Get('region/:city_id')
+  @HttpCode(HttpStatus.OK)
+  async getRegioinByCity(@Param('city_id') city_id: string): Promise<Regions> {
+    return await this.locationService.getRegionByCityId(city_id);
+  }
+
+  @Get('regions')
+  @HttpCode(HttpStatus.OK)
+  async getAllRegion(): Promise<Regions[]> {
+    return await this.locationService.getAllRegions();
   }
 }

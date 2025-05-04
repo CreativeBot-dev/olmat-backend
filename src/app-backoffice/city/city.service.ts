@@ -12,6 +12,10 @@ export class CityService {
     @InjectRepository(Cities) private repository: Repository<Cities>,
   ) {}
 
+  async findAll(): Promise<Cities[]> {
+    return await this.repository.find();
+  }
+
   async findOne(
     condition: EntityCondition<Cities>,
   ): Promise<NullableType<Cities>> {

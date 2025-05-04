@@ -90,7 +90,7 @@ export class EmailForgotPasswordListener {
                   <h1>Reset Password</h1>
                   <p>Hi ${event.email},</p>
                   <p>Klik tombol berikut untuk reset password</p>
-                   <a href="${resetPasswordLink}"
+                   <a href="${resetPasswordLink}?email=${event.email}"
                   style="display: inline-block; padding: 10px 20px; background-color: #365486; color: white; text-decoration: none; border-radius: 5px; font-size: 16px; text-align: center;">
                   Reset Password
                   </a>

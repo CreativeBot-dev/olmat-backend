@@ -55,6 +55,12 @@ export class PaymentController {
     return this.paymentService.findOne({ id: +id });
   }
 
+  @Get('/invoice/:inv')
+  @HttpCode(HttpStatus.OK)
+  async findOneByInv(@Param('inv') inv: string) {
+    return this.paymentService.findOne({ invoice: inv });
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async delete(@Param('id') id: string) {

@@ -10,6 +10,14 @@ export class RegionService {
     @InjectRepository(Regions) private repository: Repository<Regions>,
   ) {}
 
+  async findAllRegions(): Promise<Regions[]> {
+    return await this.repository.find({ relations: { cities: true } });
+  }
+
+  async findRegionByCityId(id: string): Promise<Regions> {
+    return await this.repository.findOne({ where: { cities: { id: id } } });
+  }
+
   async findManyWithPagination(
     paginationOptions: IPaginationOptions,
   ): Promise<[Regions[], number]> {
@@ -17,6 +25,9 @@ export class RegionService {
       return await this.repository.findAndCount({
         skip: (paginationOptions.page - 1) * paginationOptions.limit,
         take: paginationOptions.limit,
+        relations: {
+          cities: true,
+        },
       });
     } catch (error) {
       throw new InternalServerErrorException();

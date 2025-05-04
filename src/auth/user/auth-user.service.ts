@@ -30,7 +30,7 @@ import { LoginResponseType } from 'src/shared/types/auth/login-response.type';
 import { ErrorException } from 'src/shared/exceptions/error.exception';
 import { compare } from 'src/shared/utils/hash';
 import { UpdateUserAuthDTO } from './dto/update-user-auth.dto';
-import { EmailForgotPasswordEvent } from '../events/email-forgot-password.event copy';
+import { EmailForgotPasswordEvent } from '../events/email-forgot-password.event';
 import {
   generateHash,
   generateRandomString,
@@ -53,7 +53,7 @@ export class AuthUserService {
   OTPConfig: ValidTotpConfig = {
     algo: 'sha1',
     digits: 6,
-    period: this.config.otpExpires ?? 120,
+    period: this.config.otpExpires ?? 900,
     secretSize: 10,
   };
 
@@ -288,6 +288,7 @@ export class AuthUserService {
       name: user.name,
       school: user.school,
       access: 'user',
+      type: user.type.toLowerCase(),
     });
 
     await this.cacheService.set(
@@ -322,7 +323,7 @@ export class AuthUserService {
 
     if (userDto.password) {
       if (userDto.currentPassword) {
-        const isValidCurrentPassword = compare(
+        const isValidCurrentPassword = await compare(
           userDto.currentPassword,
           currentUser.password,
         );
@@ -338,7 +339,7 @@ export class AuthUserService {
         if (userDto.password == userDto.currentPassword) {
           throw new ErrorException(
             {
-              password: 'password not changed',
+              password: 'password must different with currentPassword',
             },
             HttpStatus.UNPROCESSABLE_ENTITY,
           );
