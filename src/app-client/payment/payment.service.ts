@@ -6,7 +6,7 @@ import {
 import { IPaginationOptions } from 'src/shared/types/pagination-options';
 import { Payments } from 'src/entities/payments.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { EntityCondition } from 'src/shared/types/entity-condition.type';
 import { NullableType } from 'src/shared/types/nullable.type';
 import { Users } from 'src/entities/users.entity';
@@ -60,25 +60,27 @@ export class PaymentService {
 
   async generateInvoiceNumber(): Promise<string> {
     const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0'); // MM
-    const day = String(now.getDate()).padStart(2, '0'); // DD
-    const year = String(now.getFullYear()).slice(2); // YY
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const year = String(now.getFullYear()).slice(2);
     const prefix = `OLM-${month}${day}${year}`;
 
-    const yearStart = new Date(now.getFullYear(), 0, 1);
-    const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+    let sequence: string;
+    let invoiceNumber: string;
+    let exists = true;
 
-    const count = await this.paymentRepository.count({
-      where: {
-        audit_trail: {
-          created_at: Between(yearStart, yearEnd),
-        },
-      },
-    });
+    while (exists) {
+      sequence = String(Math.floor(100000 + Math.random() * 900000));
+      invoiceNumber = `${prefix}${sequence}`;
 
-    const sequence = String(count + 1).padStart(6, '0');
+      const existing = await this.paymentRepository.findOne({
+        where: { invoice: invoiceNumber },
+      });
 
-    return `${prefix}${sequence}`;
+      if (!existing) exists = false;
+    }
+
+    return invoiceNumber;
   }
 
   async delete(condition: EntityCondition<Payments>): Promise<void> {
