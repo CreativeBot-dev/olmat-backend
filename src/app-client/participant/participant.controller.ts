@@ -137,7 +137,6 @@ export class ParticipantController {
   //   @SessionUser() user: Users,
   //   @Req() req: { imgFileNames: string[]; attachmentFileNames: string[] },
   // ) {
-  //   console.log('cokki', req.imgFileNames);
   //   return await this.participantService.create(
   //     data,
   //     user,

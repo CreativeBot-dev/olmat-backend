@@ -17,7 +17,6 @@ import { rtrim0 } from 'src/shared/utils/rtrim.helper';
 import { Degree } from 'src/entities/degree.entity';
 import { unlink } from 'fs';
 import { ErrorException } from 'src/shared/exceptions/error.exception';
-import { ulid } from 'ulid';
 import { PaymentGatewayService } from '../payment-gateway/payment-gateway.service';
 import { XenditService } from 'src/vendor/xendit/xendit.service';
 import { PaymentGroup, PaymentProvider } from 'src/shared/enums/payment.enum';
@@ -501,14 +500,19 @@ export class ParticipantService {
     payload: RegeneratePaymentDTO,
     user: Users,
   ): Promise<{ payment: Payments; participants: Participants[] }> {
-    const paginationOptions = { page: 1, limit: 100 }; // Sesuaikan limit sesuai kebutuhan Anda
-    const [participants, total] = await this.findManyWithPagination(
-      paginationOptions,
-      user,
-      payload.oldPaymentId,
-    );
+    const participants = await this.repository.find({
+      where: { payment: { id: payload.oldPaymentId } },
+    });
 
-    if (total === 0) {
+    const currentPayment = await this.paymentService.findOne({
+      id: payload.oldPaymentId,
+    });
+
+    if (!currentPayment) {
+      throw new BadRequestException('Payment not found');
+    }
+
+    if (!participants) {
       throw new BadRequestException('Participants not found');
     }
 
@@ -544,7 +548,7 @@ export class ParticipantService {
 
     const total_amount = amount + payment_fee;
 
-    const invoice = ulid();
+    const invoice = await this.paymentService.generateInvoiceNumber();
 
     const currentDate = new Date();
     const expiredDate = new Date(currentDate);
@@ -575,17 +579,11 @@ export class ParticipantService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
-    let oldPayment;
-
     try {
-      oldPayment = await queryRunner.manager.findOne(Payments, {
-        where: { id: payload.oldPaymentId },
-      });
-
       const newPayment = await queryRunner.manager.save(
         queryRunner.manager.create(Payments, {
-          invoice,
-          code: payload.paymentCode,
+          invoice: invoice,
+          code: 'QRIS',
           participant_amounts: participants.length,
           action: payment_action,
           fee: payment_fee,
@@ -601,8 +599,8 @@ export class ParticipantService {
       }
 
       await queryRunner.commitTransaction();
-      if (oldPayment) {
-        await this.paymentService.delete({ id: oldPayment.id });
+      if (currentPayment) {
+        await this.paymentService.delete({ id: currentPayment.id });
       }
 
       return { payment: newPayment, participants };
