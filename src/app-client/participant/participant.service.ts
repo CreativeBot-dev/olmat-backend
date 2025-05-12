@@ -21,7 +21,6 @@ import { PaymentGatewayService } from '../payment-gateway/payment-gateway.servic
 import { XenditService } from 'src/vendor/xendit/xendit.service';
 import { PaymentGroup, PaymentProvider } from 'src/shared/enums/payment.enum';
 import { EventSettingService } from 'src/core/event-setting/event-setting.service';
-import { RegeneratePaymentDTO } from './dto/regenerate-payment.dto';
 import { PaymentService } from '../payment/payment.service';
 
 @Injectable()
@@ -92,6 +91,208 @@ export class ParticipantService {
       price = price - degree.register_price * (length % cashbackSetting.amount);
     }
     return price;
+  }
+
+  async create(
+    payload: CreateParticipantDTO,
+    user: Users,
+    imgs: string[],
+    attachments: string[],
+  ) {
+    const objParticipant: Participants[] = JSON.parse(payload.participants);
+
+    const school = await this.schoolService.findOne({
+      id: payload.school_id ? payload.school_id : user.school.id,
+    });
+    if (!school) throw new BadRequestException();
+
+    const payment = await this.paymentGatewaryService.findOne({
+      code: payload.payment_code,
+    });
+
+    const amount = await this.getPrice(objParticipant.length, school.degree);
+
+    if (!payment) {
+      throw new BadRequestException('Invalid payment method.');
+    } else if (amount > payment.max_amount) {
+      throw new BadRequestException(
+        `The selected payment method has a maximum limit of ${payment.max_amount}.`,
+      );
+    } else if (amount < payment.min_amount) {
+      throw new BadRequestException(
+        `The selected payment method has a minimum limit of ${payment.min_amount}.`,
+      );
+    }
+
+    const payment_fee = Number(
+      (await this.paymentGatewaryService.getFee(amount, payment)).toFixed(),
+    );
+
+    const total_amount = amount + payment_fee;
+
+    const invoice = await this.paymentService.generateInvoiceNumber();
+
+    const currentDate = new Date();
+    const expiredDate = new Date(currentDate);
+    expiredDate.setDate(new Date().getDate() + 1);
+    const formattedExpiredDate = expiredDate.toISOString();
+
+    let payment_action: object = {};
+
+    if (payment.provider === PaymentProvider.XENDIT) {
+      if (payment.group === PaymentGroup.QRIS) {
+        const res = await this.xenditService.createQRCode({
+          reference_id: invoice,
+          amount: total_amount,
+          type: 'DYNAMIC',
+          currency: 'IDR',
+          expires_at: formattedExpiredDate,
+        });
+        payment_action = {
+          id: res?.id,
+          type: res?.type,
+          channel_code: res?.channel_code,
+          qr_string: res?.qr_string,
+        };
+      }
+    }
+
+    const queryRunner = this.datasource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const participantCount = await queryRunner.manager.count(Payments, {
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      const payment = await queryRunner.manager.save(
+        queryRunner.manager.create(Payments, {
+          invoice,
+          code: payload.payment_code,
+          participant_amounts: objParticipant.length,
+          action: payment_action,
+          fee: payment_fee,
+          total_amount,
+          amount,
+          user,
+        }),
+      );
+
+      const participants = [];
+
+      if (objParticipant.length === 1) {
+        const res = await queryRunner.manager.save(
+          queryRunner.manager.create(Participants, {
+            id:
+              String(school.city.region.region_code) +
+              String(school.degree.id) +
+              rtrim0('0000', String(+participantCount + 1)),
+            name: objParticipant[0].name,
+            gender: objParticipant[0].gender,
+            phone: objParticipant[0].phone,
+            email: objParticipant[0].email,
+            birth: objParticipant[0].birth,
+            img: imgs[0],
+            user: { id: user.id },
+            attachment: attachments[0],
+            school,
+            payment,
+          }),
+        );
+        const propertiesToDelete = [
+          'payment',
+          'school',
+          'status',
+          'id',
+          'phone',
+        ];
+
+        propertiesToDelete.forEach((property) => {
+          if (res.hasOwnProperty(property)) {
+            delete res[property];
+          }
+        });
+        participants.push(res);
+      } else {
+        for (let i = 0; i < objParticipant.length; i++) {
+          const res = await queryRunner.manager.save(
+            queryRunner.manager.create(Participants, {
+              id:
+                String(school.city.region.region_code) +
+                String(school.degree.id) +
+                rtrim0('0000', String(+participantCount + i + 1)),
+              name: objParticipant[i].name,
+              gender: objParticipant[i].gender,
+              phone: objParticipant[i].phone,
+              email: objParticipant[i].email,
+              birth: objParticipant[i].birth,
+              user: { id: user.id },
+              img: imgs[i],
+              attachment: attachments[i],
+              school,
+              payment,
+            }),
+          );
+          const propertiesToDelete = [
+            'payment',
+            'school',
+            'status',
+            'id',
+            'phone',
+          ];
+
+          propertiesToDelete.forEach((property) => {
+            if (res.hasOwnProperty(property)) {
+              delete res[property];
+            }
+          });
+          participants.push(res);
+        }
+      }
+
+      await queryRunner.commitTransaction();
+      delete payment.user;
+      return {
+        payment,
+        participants,
+      };
+    } catch (error: any) {
+      console.error('Error during transaction:', error.message);
+      await queryRunner.rollbackTransaction();
+      await Promise.all(
+        imgs.map((img) =>
+          unlink('./storage/imgs/' + img, (err) => {
+            if (err) throw err;
+          }),
+        ),
+      );
+
+      await Promise.all(
+        attachments.map((attachment) =>
+          unlink('./storage/attachments/' + attachment, (err) => {
+            if (err) throw err;
+          }),
+        ),
+      );
+      let extractedString: string | undefined;
+      if (error.code === 'ER_DUP_ENTRY') {
+        const regex = /'([^']+)'/;
+        const match = error.sqlMessage.match(regex);
+        if (match && match.length > 1) {
+          extractedString = match[1];
+        }
+        throw new ErrorException(
+          {
+            message: `${extractedString} is already in use!`,
+          },
+          509,
+        );
+      }
+      throw new InternalServerErrorException();
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   // async create(
@@ -300,315 +501,119 @@ export class ParticipantService {
   //   }
   // }
 
-  async create(
-    payload: CreateParticipantDTO,
-    user: Users,
-    imgs: string[],
-    attachments: string[],
-  ) {
-    const objParticipant: Participants[] = JSON.parse(payload.participants);
+  // async regeneratePayment(
+  //   payload: RegeneratePaymentDTO,
+  //   user: Users,
+  // ): Promise<{ payment: Payments; participants: Participants[] }> {
+  //   const participants = await this.repository.find({
+  //     where: { payment: { id: payload.oldPaymentId } },
+  //   });
 
-    const school = await this.schoolService.findOne({
-      id: payload.school_id ? payload.school_id : user.school.id,
-    });
-    if (!school) throw new BadRequestException();
+  //   const currentPayment = await this.paymentService.findOne({
+  //     id: payload.oldPaymentId,
+  //   });
 
-    const payment = await this.paymentGatewaryService.findOne({
-      code: payload.payment_code,
-    });
+  //   if (!currentPayment) {
+  //     throw new BadRequestException('Payment not found');
+  //   }
 
-    const amount = await this.getPrice(objParticipant.length, school.degree);
+  //   if (!participants) {
+  //     throw new BadRequestException('Participants not found');
+  //   }
 
-    if (!payment) {
-      throw new BadRequestException('Invalid payment method.');
-    } else if (amount > payment.max_amount) {
-      throw new BadRequestException(
-        `The selected payment method has a maximum limit of ${payment.max_amount}.`,
-      );
-    } else if (amount < payment.min_amount) {
-      throw new BadRequestException(
-        `The selected payment method has a minimum limit of ${payment.min_amount}.`,
-      );
-    }
+  //   const school = await this.schoolService.findOne({
+  //     id: user.school.id,
+  //   });
 
-    const payment_fee = Number(
-      (await this.paymentGatewaryService.getFee(amount, payment)).toFixed(),
-    );
+  //   if (!school) {
+  //     throw new BadRequestException('School not found');
+  //   }
 
-    const total_amount = amount + payment_fee;
+  //   const payment = await this.paymentGatewaryService.findOne({
+  //     code: payload.paymentCode,
+  //   });
 
-    const invoice = await this.paymentService.generateInvoiceNumber();
+  //   const amount = await this.getPrice(participants.length, school.degree);
 
-    const currentDate = new Date();
-    const expiredDate = new Date(currentDate);
-    expiredDate.setDate(new Date().getDate() + 1);
-    const formattedExpiredDate = expiredDate.toISOString();
+  //   if (!payment) {
+  //     throw new BadRequestException('Invalid payment');
+  //   } else if (amount > payment.max_amount) {
+  //     throw new BadRequestException(
+  //       `The selected payment method is a maximum ${payment.max_amount}`,
+  //     );
+  //   } else if (amount < payment.min_amount) {
+  //     throw new BadRequestException(
+  //       `The selected payment method is a minimum ${payment.min_amount}`,
+  //     );
+  //   }
 
-    let payment_action: object = {};
+  //   const payment_fee = Number(
+  //     (await this.paymentGatewaryService.getFee(amount, payment)).toFixed(),
+  //   );
 
-    if (payment.provider === PaymentProvider.XENDIT) {
-      if (payment.group === PaymentGroup.QRIS) {
-        const res = await this.xenditService.createQRCode({
-          reference_id: invoice,
-          amount: total_amount,
-          type: 'DYNAMIC',
-          currency: 'IDR',
-          expires_at: formattedExpiredDate,
-        });
-        payment_action = {
-          id: res?.id,
-          type: res?.type,
-          channel_code: res?.channel_code,
-          qr_string: res?.qr_string,
-        };
-      }
-    }
+  //   const total_amount = amount + payment_fee;
 
-    const queryRunner = this.datasource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+  //   const invoice = await this.paymentService.generateInvoiceNumber();
 
-    try {
-      const participantCount = await queryRunner.manager.count(Payments, {
-        lock: { mode: 'pessimistic_write' },
-      });
+  //   const currentDate = new Date();
+  //   const expiredDate = new Date(currentDate);
+  //   expiredDate.setDate(new Date().getDate() + 1);
+  //   const formattedExpiredDate = expiredDate.toISOString();
 
-      const payment = await queryRunner.manager.save(
-        queryRunner.manager.create(Payments, {
-          invoice,
-          code: payload.payment_code,
-          participant_amounts: objParticipant.length,
-          action: payment_action,
-          fee: payment_fee,
-          total_amount,
-          amount,
-          user,
-        }),
-      );
+  //   let payment_action: object = {};
 
-      const participants = [];
+  //   if (payment.provider === PaymentProvider.XENDIT) {
+  //     if (payment.group === PaymentGroup.QRIS) {
+  //       const res = await this.xenditService.createQRCode({
+  //         reference_id: invoice,
+  //         amount: total_amount,
+  //         type: 'DYNAMIC',
+  //         currency: 'IDR',
+  //         expires_at: formattedExpiredDate,
+  //       });
+  //       payment_action = {
+  //         id: res?.id,
+  //         type: res?.type,
+  //         channel_code: res?.channel_code,
+  //         qr_string: res?.qr_string,
+  //       };
+  //     }
+  //   }
 
-      if (objParticipant.length === 1) {
-        const res = await queryRunner.manager.save(
-          queryRunner.manager.create(Participants, {
-            id:
-              String(school.city.region.region_code) +
-              String(school.degree.id) +
-              rtrim0('0000', String(+participantCount + 1)),
-            name: objParticipant[0].name,
-            gender: objParticipant[0].gender,
-            phone: objParticipant[0].phone,
-            email: objParticipant[0].email,
-            birth: objParticipant[0].birth,
-            img: imgs[0],
-            user: { id: user.id },
-            attachment: attachments[0],
-            school,
-            payment,
-          }),
-        );
-        const propertiesToDelete = [
-          'payment',
-          'school',
-          'status',
-          'id',
-          'phone',
-        ];
+  //   const queryRunner = this.datasource.createQueryRunner();
+  //   await queryRunner.connect();
+  //   await queryRunner.startTransaction();
 
-        propertiesToDelete.forEach((property) => {
-          if (res.hasOwnProperty(property)) {
-            delete res[property];
-          }
-        });
-        participants.push(res);
-      } else {
-        for (let i = 0; i < objParticipant.length; i++) {
-          const res = await queryRunner.manager.save(
-            queryRunner.manager.create(Participants, {
-              id:
-                String(school.city.region.region_code) +
-                String(school.degree.id) +
-                rtrim0('0000', String(+participantCount + i + 1)),
-              name: objParticipant[i].name,
-              gender: objParticipant[i].gender,
-              phone: objParticipant[i].phone,
-              email: objParticipant[i].email,
-              birth: objParticipant[i].birth,
-              user: { id: user.id },
-              img: imgs[i],
-              attachment: attachments[i],
-              school,
-              payment,
-            }),
-          );
-          const propertiesToDelete = [
-            'payment',
-            'school',
-            'status',
-            'id',
-            'phone',
-          ];
+  //   try {
+  //     const newPayment = await queryRunner.manager.save(
+  //       queryRunner.manager.create(Payments, {
+  //         invoice: invoice,
+  //         code: 'QRIS',
+  //         participant_amounts: participants.length,
+  //         action: payment_action,
+  //         fee: payment_fee,
+  //         total_amount,
+  //         amount,
+  //         user,
+  //       }),
+  //     );
 
-          propertiesToDelete.forEach((property) => {
-            if (res.hasOwnProperty(property)) {
-              delete res[property];
-            }
-          });
-          participants.push(res);
-        }
-      }
+  //     for (const participant of participants) {
+  //       participant.payment = newPayment;
+  //       await queryRunner.manager.save(participant);
+  //     }
 
-      await queryRunner.commitTransaction();
-      delete payment.user;
-      return {
-        payment,
-        participants,
-      };
-    } catch (error: any) {
-      await queryRunner.rollbackTransaction();
-      imgs.map(async (img) => {
-        await unlink('./storage/imgs/' + img, (err) => {
-          if (err) throw err;
-        });
-      });
-      attachments.map(async (attachment) => {
-        await unlink('./storage/attachments/' + attachment, (err) => {
-          if (err) throw err;
-        });
-      });
-      let extractedString: string | undefined;
-      if (error.code === 'ER_DUP_ENTRY') {
-        const regex = /'([^']+)'/;
-        const match = error.sqlMessage.match(regex);
-        if (match && match.length > 1) {
-          extractedString = match[1];
-        }
-        throw new ErrorException(
-          {
-            message: `${extractedString} is already in use!`,
-          },
-          509,
-        );
-      }
-      throw new InternalServerErrorException();
-    } finally {
-      await queryRunner.release();
-    }
-  }
+  //     await queryRunner.commitTransaction();
+  //     if (currentPayment) {
+  //       await this.paymentService.delete({ id: currentPayment.id });
+  //     }
 
-  async regeneratePayment(
-    payload: RegeneratePaymentDTO,
-    user: Users,
-  ): Promise<{ payment: Payments; participants: Participants[] }> {
-    const participants = await this.repository.find({
-      where: { payment: { id: payload.oldPaymentId } },
-    });
-
-    const currentPayment = await this.paymentService.findOne({
-      id: payload.oldPaymentId,
-    });
-
-    if (!currentPayment) {
-      throw new BadRequestException('Payment not found');
-    }
-
-    if (!participants) {
-      throw new BadRequestException('Participants not found');
-    }
-
-    const school = await this.schoolService.findOne({
-      id: user.school.id,
-    });
-
-    if (!school) {
-      throw new BadRequestException('School not found');
-    }
-
-    const payment = await this.paymentGatewaryService.findOne({
-      code: payload.paymentCode,
-    });
-
-    const amount = await this.getPrice(participants.length, school.degree);
-
-    if (!payment) {
-      throw new BadRequestException('Invalid payment');
-    } else if (amount > payment.max_amount) {
-      throw new BadRequestException(
-        `The selected payment method is a maximum ${payment.max_amount}`,
-      );
-    } else if (amount < payment.min_amount) {
-      throw new BadRequestException(
-        `The selected payment method is a minimum ${payment.min_amount}`,
-      );
-    }
-
-    const payment_fee = Number(
-      (await this.paymentGatewaryService.getFee(amount, payment)).toFixed(),
-    );
-
-    const total_amount = amount + payment_fee;
-
-    const invoice = await this.paymentService.generateInvoiceNumber();
-
-    const currentDate = new Date();
-    const expiredDate = new Date(currentDate);
-    expiredDate.setDate(new Date().getDate() + 1);
-    const formattedExpiredDate = expiredDate.toISOString();
-
-    let payment_action: object = {};
-
-    if (payment.provider === PaymentProvider.XENDIT) {
-      if (payment.group === PaymentGroup.QRIS) {
-        const res = await this.xenditService.createQRCode({
-          reference_id: invoice,
-          amount: total_amount,
-          type: 'DYNAMIC',
-          currency: 'IDR',
-          expires_at: formattedExpiredDate,
-        });
-        payment_action = {
-          id: res?.id,
-          type: res?.type,
-          channel_code: res?.channel_code,
-          qr_string: res?.qr_string,
-        };
-      }
-    }
-
-    const queryRunner = this.datasource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      const newPayment = await queryRunner.manager.save(
-        queryRunner.manager.create(Payments, {
-          invoice: invoice,
-          code: 'QRIS',
-          participant_amounts: participants.length,
-          action: payment_action,
-          fee: payment_fee,
-          total_amount,
-          amount,
-          user,
-        }),
-      );
-
-      for (const participant of participants) {
-        participant.payment = newPayment;
-        await queryRunner.manager.save(participant);
-      }
-
-      await queryRunner.commitTransaction();
-      if (currentPayment) {
-        await this.paymentService.delete({ id: currentPayment.id });
-      }
-
-      return { payment: newPayment, participants };
-    } catch (error: any) {
-      await queryRunner.rollbackTransaction();
-      throw new InternalServerErrorException();
-    } finally {
-      await queryRunner.release();
-    }
-  }
+  //     return { payment: newPayment, participants };
+  //   } catch (error: any) {
+  //     await queryRunner.rollbackTransaction();
+  //     throw new InternalServerErrorException();
+  //   } finally {
+  //     await queryRunner.release();
+  //   }
+  // }
 }

@@ -25,7 +25,6 @@ import { SessionUser } from 'src/shared/decorators/user.decorator';
 import { Users } from 'src/entities/users.entity';
 import { AuthUserGuard } from 'src/shared/guards/auth.guard';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { RegeneratePaymentDTO } from './dto/regenerate-payment.dto';
 
 @ApiBearerAuth()
 @UseGuards(AuthUserGuard)
@@ -145,11 +144,11 @@ export class ParticipantController {
   //   );
   // }
 
-  @Post('regenerate-payment')
-  async regeneratePayment(
-    @Body() payload: RegeneratePaymentDTO,
-    @SessionUser() user: Users,
-  ) {
-    return this.participantService.regeneratePayment(payload, user);
-  }
+  // @Post('regenerate-payment')
+  // async regeneratePayment(
+  //   @Body() payload: RegeneratePaymentDTO,
+  //   @SessionUser() user: Users,
+  // ) {
+  //   return this.participantService.regeneratePayment(payload, user);
+  // }
 }

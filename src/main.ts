@@ -24,6 +24,7 @@ async function bootstrap() {
   app.useStaticAssets(path.join(__dirname, '../storage/'));
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
   const configService = app.get(ConfigService<AllConfigType>);
+  console.log('this', configService.getOrThrow('app.nodeEnv', { infer: true }));
 
   app.enableShutdownHooks();
   app.setGlobalPrefix(
