@@ -12,21 +12,29 @@ export class UserSeedService {
     await queryRunner.startTransaction();
 
     try {
-      await queryRunner.manager.save(
-        queryRunner.manager.create(Users, {
-          name: 'User One',
-          email: 'user@gmail.com',
-          password: 'qweqweqwe',
-          phone: '08168',
+      const regions = await queryRunner.manager.find('regions'); // asumsi nama entitasnya 'regions'
+
+      for (const region of regions) {
+        const rayonName = region.name.replace('Rayon ', '').replace(/\s+/g, '');
+        const email = `${rayonName.toLowerCase()}@olmat.com`;
+        const rawPassword = `AdminRayon${rayonName}`;
+
+        const user = queryRunner.manager.create(Users, {
+          name: `Admin ${rayonName}`,
+          email,
+          password: rawPassword,
+          phone: `081${Math.floor(100000 + Math.random() * 900000)}`,
           type: 'Admin',
-          region: { id: 'SBY' },
-        }),
-      );
+          region: { id: region.id },
+        });
+
+        await queryRunner.manager.save(user);
+      }
 
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      throw new InternalServerErrorException();
+      throw new InternalServerErrorException(error.message);
     } finally {
       await queryRunner.release();
     }

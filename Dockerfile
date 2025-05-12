@@ -4,7 +4,9 @@ FROM node:20.17.0 AS base
 FROM base AS builder
 WORKDIR /app
 COPY . .
-RUN cp .env.example .env && yarn && yarn build
+
+
+# RUN cp .env.example .env && yarn && yarn build
 
 # FROM base AS dev
 # WORKDIR /app
@@ -18,6 +20,7 @@ FROM base AS prod
 WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/storage storage
 COPY --from=builder /app/.env .env
 EXPOSE 8000
 CMD ["node", "dist/main.js"]
