@@ -12,8 +12,6 @@ export class EmailForgotPassListener {
   async handleForgotPassEvent(event: EmailForgotPasswordEvent) {
     const resetPasswordLink = `${process.env.FRONTEND_DOMAIN}/forgot-pass/${event.hash}?email=${event.email}`;
 
-    console.log('reset link:', resetPasswordLink);
-
     // Plain text version as fallback
     const plainText = `
       Reset Password OLMAT UINSA 2024
@@ -38,7 +36,6 @@ export class EmailForgotPassListener {
         },
         text: plainText, // Adding a plain text version improves deliverability
       });
-      console.log('Success sending reset password email');
     } catch (error) {
       console.log('Error sending reset password email:', error);
     }

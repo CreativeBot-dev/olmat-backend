@@ -22,7 +22,6 @@ import { Participants } from 'src/entities/participants.entity';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { UpdateParticipantDTO } from './dto/update-participant.dto';
 import { NullableType } from 'src/shared/types/nullable.type';
-import { participantsUpdateByPaymentDTO } from './dto/participant-updatepayment';
 
 @ApiTags('Participant')
 @ApiBearerAuth()
@@ -104,11 +103,11 @@ export class ParticipantController {
     );
   }
 
-  @Put('/payments/:id')
-  async updateParticipant(
-    @Param('id') id: number,
-    @Body() payload: participantsUpdateByPaymentDTO,
-  ) {
-    return this.participantService.updateParticipantsByPayment(id, payload);
-  }
+  // @Put('/payments/:id')
+  // async updateParticipant(
+  //   @Param('id') id: number,
+  //   @Body() payload: participantsUpdateByPaymentDTO,
+  // ) {
+  //   return this.participantService.updateParticipantsByPayment(id, payload);
+  // }
 }

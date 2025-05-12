@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne } from 'typeorm';
+import { Entity, Column, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Payments } from './payments.entity';
 import { Schools } from './schools.entity';
 import { ParticipantStatus } from 'src/shared/enums/participants.enum';
@@ -7,8 +7,11 @@ import { Users } from './users.entity';
 
 @Entity()
 export class Participants extends EntityHelper {
-  @Column({ unique: true, primary: true })
+  @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column()
+  keplekId: string;
 
   @Column()
   name: string;
