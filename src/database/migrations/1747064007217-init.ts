@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class Migrations1745071190981 implements MigrationInterface {
-  name = 'Migrations1745071190981';
+export class Init1747064007217 implements MigrationInterface {
+  name = 'Init1747064007217';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -23,7 +23,7 @@ export class Migrations1745071190981 implements MigrationInterface {
       `CREATE TABLE \`schools\` (\`id\` int NOT NULL AUTO_INCREMENT, \`name\` varchar(255) NOT NULL, \`address\` varchar(255) NOT NULL, \`email\` varchar(255) NULL, \`phone\` varchar(255) NULL, \`whatsapp\` varchar(255) NULL, \`status\` enum ('emas', 'putih', 'hitam') NOT NULL DEFAULT 'hitam', \`is_accept\` tinyint NOT NULL DEFAULT 0, \`province_id\` varchar(255) NOT NULL, \`degree_id\` varchar(255) NOT NULL, \`city_id\` varchar(255) NOT NULL, \`subdistrict_id\` varchar(255) NOT NULL, \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`created_by\` varchar(255) NULL DEFAULT 'System', \`updated_at\` datetime(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`updated_by\` timestamp NULL, PRIMARY KEY (\`id\`)) ENGINE=InnoDB`,
     );
     await queryRunner.query(
-      `CREATE TABLE \`participants\` (\`id\` varchar(255) NOT NULL, \`name\` varchar(255) NOT NULL, \`gender\` varchar(255) NOT NULL, \`phone\` varchar(255) NOT NULL, \`email\` varchar(255) NOT NULL, \`birth\` varchar(255) NOT NULL, \`img\` varchar(255) NOT NULL, \`attachment\` varchar(255) NOT NULL, \`status\` enum ('active', 'pending', 'cancel') NOT NULL DEFAULT 'pending', \`payment_id\` int NOT NULL, \`school_id\` int NOT NULL, \`user_id\` int NOT NULL, \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`created_by\` varchar(255) NULL DEFAULT 'System', \`updated_at\` datetime(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`updated_by\` timestamp NULL, UNIQUE INDEX \`IDX_1cda06c31eec1c95b3365a0283\` (\`id\`), PRIMARY KEY (\`id\`)) ENGINE=InnoDB`,
+      `CREATE TABLE \`participants\` (\`id\` varchar(36) NOT NULL, \`keplek_id\` varchar(255) NOT NULL, \`name\` varchar(255) NOT NULL, \`gender\` varchar(255) NOT NULL, \`phone\` varchar(255) NOT NULL, \`email\` varchar(255) NOT NULL, \`birth\` varchar(255) NOT NULL, \`img\` varchar(255) NOT NULL, \`attachment\` varchar(255) NOT NULL, \`status\` enum ('active', 'pending', 'cancel') NOT NULL DEFAULT 'pending', \`payment_id\` int NOT NULL, \`school_id\` int NOT NULL, \`user_id\` int NOT NULL, \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`created_by\` varchar(255) NULL DEFAULT 'System', \`updated_at\` datetime(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`updated_by\` timestamp NULL, UNIQUE INDEX \`IDX_2e32f17810cbc5e21972ebd7b8\` (\`keplek_id\`), PRIMARY KEY (\`id\`)) ENGINE=InnoDB`,
     );
     await queryRunner.query(
       `CREATE TABLE \`payment_gateways\` (\`id\` int NOT NULL AUTO_INCREMENT, \`name\` varchar(255) NOT NULL, \`provider\` varchar(255) NOT NULL, \`group\` varchar(255) NOT NULL, \`logo\` varchar(255) NOT NULL, \`code\` varchar(255) NOT NULL, \`fee_flat\` int UNSIGNED NOT NULL, \`fee_percentage\` int UNSIGNED NOT NULL, \`min_amount\` int UNSIGNED NOT NULL, \`max_amount\` int UNSIGNED NOT NULL, \`is_active\` tinyint UNSIGNED NOT NULL, \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`created_by\` varchar(255) NULL DEFAULT 'System', \`updated_at\` datetime(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`updated_by\` timestamp NULL, UNIQUE INDEX \`IDX_7df2b87fd46ab82914464b9587\` (\`code\`), PRIMARY KEY (\`id\`)) ENGINE=InnoDB`,
@@ -168,7 +168,7 @@ export class Migrations1745071190981 implements MigrationInterface {
     );
     await queryRunner.query(`DROP TABLE \`payment_gateways\``);
     await queryRunner.query(
-      `DROP INDEX \`IDX_1cda06c31eec1c95b3365a0283\` ON \`participants\``,
+      `DROP INDEX \`IDX_2e32f17810cbc5e21972ebd7b8\` ON \`participants\``,
     );
     await queryRunner.query(`DROP TABLE \`participants\``);
     await queryRunner.query(`DROP TABLE \`schools\``);

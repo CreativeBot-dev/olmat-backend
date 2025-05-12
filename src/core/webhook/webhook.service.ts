@@ -77,6 +77,7 @@ export class WebhookService {
 
       await queryRunner.commitTransaction();
     } catch (error) {
+      console.log(error);
       await queryRunner.rollbackTransaction();
       throw new InternalServerErrorException('transaction error');
     } finally {
