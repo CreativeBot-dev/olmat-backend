@@ -30,6 +30,7 @@ export class WebhookController {
     @Body()
     payload: XenditQRCodeEvent<XenditQRCodePayment | XenditQRCodeRefund>,
   ): Promise<string> {
+    console.log('webhook xendit', payload);
     await this.webhookService.handleXenditQRCode(payload);
     return 'Ok';
   }
