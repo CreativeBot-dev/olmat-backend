@@ -162,7 +162,7 @@ export class ParticipantService {
     await queryRunner.startTransaction();
 
     try {
-      const participantCount = await queryRunner.manager.count(Payments, {
+      const participantCount = await queryRunner.manager.count(Participants, {
         lock: { mode: 'pessimistic_write' },
       });
 
@@ -180,26 +180,38 @@ export class ParticipantService {
       );
 
       const participants = [];
+      for (let i = 0; i < objParticipant.length; i++) {
+        const seqNumber = participantCount + i + 1;
+        if (seqNumber > 9999) {
+          throw new Error('Sequence number exceeds maximum limit');
+        }
+        const id = `${school.city.region.region_code}${
+          school.degree.id
+        }${rtrim0('0000', String(seqNumber))}`;
 
-      if (objParticipant.length === 1) {
+        const existing = await queryRunner.manager.findOne(Participants, {
+          where: { keplekId: id },
+        });
+        if (existing) {
+          throw new Error(`ID ${id} already exists`);
+        }
+
         const res = await queryRunner.manager.save(
           queryRunner.manager.create(Participants, {
-            keplekId:
-              String(school.city.region.region_code) +
-              String(school.degree.id) +
-              rtrim0('0000', String(+participantCount + 1)),
-            name: objParticipant[0].name,
-            gender: objParticipant[0].gender,
-            phone: objParticipant[0].phone,
-            email: objParticipant[0].email,
-            birth: objParticipant[0].birth,
-            img: imgs[0],
+            keplekId: id,
+            name: objParticipant[i].name,
+            gender: objParticipant[i].gender,
+            phone: objParticipant[i].phone,
+            email: objParticipant[i].email,
+            birth: objParticipant[i].birth,
             user: { id: user.id },
-            attachment: attachments[0],
+            img: imgs[i],
+            attachment: attachments[i],
             school,
             payment,
           }),
         );
+
         const propertiesToDelete = [
           'payment',
           'school',
@@ -207,48 +219,12 @@ export class ParticipantService {
           'id',
           'phone',
         ];
-
         propertiesToDelete.forEach((property) => {
           if (res.hasOwnProperty(property)) {
             delete res[property];
           }
         });
         participants.push(res);
-      } else {
-        for (let i = 0; i < objParticipant.length; i++) {
-          const res = await queryRunner.manager.save(
-            queryRunner.manager.create(Participants, {
-              keplekId:
-                String(school.city.region.region_code) +
-                String(school.degree.id) +
-                rtrim0('0000', String(+participantCount + i + 1)),
-              name: objParticipant[i].name,
-              gender: objParticipant[i].gender,
-              phone: objParticipant[i].phone,
-              email: objParticipant[i].email,
-              birth: objParticipant[i].birth,
-              user: { id: user.id },
-              img: imgs[i],
-              attachment: attachments[i],
-              school,
-              payment,
-            }),
-          );
-          const propertiesToDelete = [
-            'payment',
-            'school',
-            'status',
-            'id',
-            'phone',
-          ];
-
-          propertiesToDelete.forEach((property) => {
-            if (res.hasOwnProperty(property)) {
-              delete res[property];
-            }
-          });
-          participants.push(res);
-        }
       }
 
       await queryRunner.commitTransaction();
@@ -294,6 +270,94 @@ export class ParticipantService {
       await queryRunner.release();
     }
   }
+
+  // const participants = [];
+
+  // const idKeplek = `${school.city.region.region_code}${
+  //   school.degree.id
+  // }${rtrim0('0000', String(seqNumber))}`;
+
+  // // Validasi ID unik (opsional, jika tidak ada constraint UNIQUE)
+  // const existing = await queryRunner.manager.findOne(Participants, {
+  //   where: { id },
+  // });
+  // if (existing) {
+  //   throw new Error(`ID ${id} already exists`);
+  // }
+
+  // // keplekId:
+  // //   String(school.city.region.region_code) +
+  // //   String(school.degree.id) +
+  // //   rtrim0('0000', String(+participantCount + 1)),
+  // if (objParticipant.length === 1) {
+  //   const res = await queryRunner.manager.save(
+  //     queryRunner.manager.create(Participants, {
+  //       keplekId:
+  //         String(school.city.region.region_code) +
+  //         String(school.degree.id) +
+  //         rtrim0('0000', String(+participantCount + 1)),
+  //       name: objParticipant[0].name,
+  //       gender: objParticipant[0].gender,
+  //       phone: objParticipant[0].phone,
+  //       email: objParticipant[0].email,
+  //       birth: objParticipant[0].birth,
+  //       img: imgs[0],
+  //       user: { id: user.id },
+  //       attachment: attachments[0],
+  //       school,
+  //       payment,
+  //     }),
+  //   );
+  //   const propertiesToDelete = [
+  //     'payment',
+  //     'school',
+  //     'status',
+  //     'id',
+  //     'phone',
+  //   ];
+
+  //   propertiesToDelete.forEach((property) => {
+  //     if (res.hasOwnProperty(property)) {
+  //       delete res[property];
+  //     }
+  //   });
+  //   participants.push(res);
+  // } else {
+  //   for (let i = 0; i < objParticipant.length; i++) {
+  //     const res = await queryRunner.manager.save(
+  //       queryRunner.manager.create(Participants, {
+  //         keplekId:
+  //           String(school.city.region.region_code) +
+  //           String(school.degree.id) +
+  //           rtrim0('0000', String(+participantCount + i + 1)),
+  //         name: objParticipant[i].name,
+  //         gender: objParticipant[i].gender,
+  //         phone: objParticipant[i].phone,
+  //         email: objParticipant[i].email,
+  //         birth: objParticipant[i].birth,
+  //         user: { id: user.id },
+  //         img: imgs[i],
+  //         attachment: attachments[i],
+  //         school,
+  //         payment,
+  //       }),
+  //     );
+  //     const propertiesToDelete = [
+  //       'payment',
+  //       'school',
+  //       'status',
+  //       'id',
+  //       'phone',
+  //     ];
+
+  //     propertiesToDelete.forEach((property) => {
+  //       if (res.hasOwnProperty(property)) {
+  //         delete res[property];
+  //       }
+  //     });
+  //     participants.push(res);
+  //   }
+  // }
 
   // async create(
   //   payload: CreateParticipantDTO,
