@@ -12,8 +12,8 @@ RUN mkdir -p storage/imgs storage/attachments
 RUN cp .env.example .env \
     && yarn install --frozen-lockfile \
     && yarn build
-    && yarn migration:run
-    && yarn seed:run
+    # && yarn migration:run
+    # && yarn seed:run
     
 
 # Production image
