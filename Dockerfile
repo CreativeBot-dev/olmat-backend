@@ -20,7 +20,6 @@ FROM base AS prod
 WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/storage storage
 COPY --from=builder /app/.env .env
-EXPOSE 8000
+EXPOSE 9000
 CMD ["node", "dist/main.js"]
