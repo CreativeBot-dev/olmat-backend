@@ -18,6 +18,16 @@ import { UserCLientModules } from './app-client/module';
 import * as path from 'path';
 
 async function bootstrap() {
+  console.log('CACHE_HOST:', process.env.CACHE_HOST);
+  console.log('CACHE_PORT:', process.env.CACHE_PORT);
+  console.log('CACHE_PASSWORD:', process.env.CACHE_PASSWORD);
+  console.log('CACHE_DB:', process.env.CACHE_DB);
+
+  console.log('MYSQL_NAME:', process.env.DATABASE_NAME);
+  console.log('MYSQL_HOST:', process.env.DATABABASE_HOST);
+  console.log('MYSQL_PORT:', process.env.DATABABASE_PORT);
+  console.log('MYSQL_USER:', process.env.DATABABASE_USER);
+  console.log('MYSQL_PASSWORD:', process.env.DATABABASE_PASSWORD);
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     cors: true,
   });
