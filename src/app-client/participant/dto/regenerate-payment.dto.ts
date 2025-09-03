@@ -4,7 +4,7 @@ import { IsNotEmpty } from 'class-validator';
 export class RegeneratePaymentDTO {
   @ApiProperty()
   @IsNotEmpty()
-  oldPaymentId: number;
+  oldInvoice: string;
 
   @ApiProperty()
   @IsNotEmpty()
