@@ -22,6 +22,7 @@ import { XenditService } from 'src/vendor/xendit/xendit.service';
 import { PaymentGroup, PaymentProvider } from 'src/shared/enums/payment.enum';
 import { EventSettingService } from 'src/core/event-setting/event-setting.service';
 import { PaymentService } from '../payment/payment.service';
+import { RegeneratePaymentDTO } from './dto/regenerate-payment.dto';
 
 @Injectable()
 export class ParticipantService {
@@ -565,119 +566,93 @@ export class ParticipantService {
   //   }
   // }
 
-  // async regeneratePayment(
-  //   payload: RegeneratePaymentDTO,
-  //   user: Users,
-  // ): Promise<{ payment: Payments; participants: Participants[] }> {
-  //   const participants = await this.repository.find({
-  //     where: { payment: { id: payload.oldPaymentId } },
-  //   });
+  async regeneratePayment(
+    payload: RegeneratePaymentDTO,
+    // user: Users,
+  ): Promise<{ payment: Payments; participants: Participants[] }> {
+    const participants = await this.repository.find({
+      where: { payment: { invoice: payload.oldInvoice } },
+    });
 
-  //   const currentPayment = await this.paymentService.findOne({
-  //     id: payload.oldPaymentId,
-  //   });
+    const queryRunner = this.datasource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    const currentPayment = await queryRunner.manager.findOne(Payments, {
+      where: { invoice: payload.oldInvoice },
+      relations: { user: true },
+    });
 
-  //   if (!currentPayment) {
-  //     throw new BadRequestException('Payment not found');
-  //   }
+    if (!currentPayment) {
+      throw new BadRequestException('Payment not found');
+    }
 
-  //   if (!participants) {
-  //     throw new BadRequestException('Participants not found');
-  //   }
+    if (!participants) {
+      throw new BadRequestException('Participants not found');
+    }
 
-  //   const school = await this.schoolService.findOne({
-  //     id: user.school.id,
-  //   });
+    const payment = await this.paymentGatewaryService.findOne({
+      code: payload.paymentCode,
+    });
 
-  //   if (!school) {
-  //     throw new BadRequestException('School not found');
-  //   }
+    const total_amount = currentPayment.amount + currentPayment.fee;
 
-  //   const payment = await this.paymentGatewaryService.findOne({
-  //     code: payload.paymentCode,
-  //   });
+    const invoice = await this.paymentService.generateInvoiceNumber();
 
-  //   const amount = await this.getPrice(participants.length, school.degree);
+    const currentDate = new Date();
+    const expiredDate = new Date(currentDate);
+    expiredDate.setDate(new Date().getDate() + 1);
+    const formattedExpiredDate = expiredDate.toISOString();
 
-  //   if (!payment) {
-  //     throw new BadRequestException('Invalid payment');
-  //   } else if (amount > payment.max_amount) {
-  //     throw new BadRequestException(
-  //       `The selected payment method is a maximum ${payment.max_amount}`,
-  //     );
-  //   } else if (amount < payment.min_amount) {
-  //     throw new BadRequestException(
-  //       `The selected payment method is a minimum ${payment.min_amount}`,
-  //     );
-  //   }
+    let payment_action: object = {};
 
-  //   const payment_fee = Number(
-  //     (await this.paymentGatewaryService.getFee(amount, payment)).toFixed(),
-  //   );
+    if (payment.provider === PaymentProvider.XENDIT) {
+      if (payment.group === PaymentGroup.QRIS) {
+        const res = await this.xenditService.createQRCode({
+          reference_id: invoice,
+          amount: total_amount,
+          type: 'DYNAMIC',
+          currency: 'IDR',
+          expires_at: formattedExpiredDate,
+        });
+        payment_action = {
+          id: res?.id,
+          type: res?.type,
+          channel_code: res?.channel_code,
+          qr_string: res?.qr_string,
+        };
+      }
+    }
 
-  //   const total_amount = amount + payment_fee;
+    try {
+      const newPayment = await queryRunner.manager.save(
+        queryRunner.manager.create(Payments, {
+          invoice: invoice,
+          code: 'QRIS',
+          participant_amounts: participants.length,
+          action: payment_action,
+          fee: currentPayment.fee,
+          total_amount: currentPayment.total_amount,
+          amount: currentPayment.amount,
+          user: currentPayment.user,
+        }),
+      );
 
-  //   const invoice = await this.paymentService.generateInvoiceNumber();
+      for (const participant of participants) {
+        participant.payment = newPayment;
+        await queryRunner.manager.save(participant);
+      }
 
-  //   const currentDate = new Date();
-  //   const expiredDate = new Date(currentDate);
-  //   expiredDate.setDate(new Date().getDate() + 1);
-  //   const formattedExpiredDate = expiredDate.toISOString();
+      if (currentPayment) {
+        await queryRunner.manager.delete(Payments, { id: currentPayment.id });
+      }
+      await queryRunner.commitTransaction();
 
-  //   let payment_action: object = {};
-
-  //   if (payment.provider === PaymentProvider.XENDIT) {
-  //     if (payment.group === PaymentGroup.QRIS) {
-  //       const res = await this.xenditService.createQRCode({
-  //         reference_id: invoice,
-  //         amount: total_amount,
-  //         type: 'DYNAMIC',
-  //         currency: 'IDR',
-  //         expires_at: formattedExpiredDate,
-  //       });
-  //       payment_action = {
-  //         id: res?.id,
-  //         type: res?.type,
-  //         channel_code: res?.channel_code,
-  //         qr_string: res?.qr_string,
-  //       };
-  //     }
-  //   }
-
-  //   const queryRunner = this.datasource.createQueryRunner();
-  //   await queryRunner.connect();
-  //   await queryRunner.startTransaction();
-
-  //   try {
-  //     const newPayment = await queryRunner.manager.save(
-  //       queryRunner.manager.create(Payments, {
-  //         invoice: invoice,
-  //         code: 'QRIS',
-  //         participant_amounts: participants.length,
-  //         action: payment_action,
-  //         fee: payment_fee,
-  //         total_amount,
-  //         amount,
-  //         user,
-  //       }),
-  //     );
-
-  //     for (const participant of participants) {
-  //       participant.payment = newPayment;
-  //       await queryRunner.manager.save(participant);
-  //     }
-
-  //     await queryRunner.commitTransaction();
-  //     if (currentPayment) {
-  //       await this.paymentService.delete({ id: currentPayment.id });
-  //     }
-
-  //     return { payment: newPayment, participants };
-  //   } catch (error: any) {
-  //     await queryRunner.rollbackTransaction();
-  //     throw new InternalServerErrorException();
-  //   } finally {
-  //     await queryRunner.release();
-  //   }
-  // }
+      return { payment: newPayment, participants };
+    } catch (error: any) {
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException();
+    } finally {
+      await queryRunner.release();
+    }
+  }
 }
