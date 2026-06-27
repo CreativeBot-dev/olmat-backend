@@ -221,6 +221,7 @@ export class AuthUserService {
 
     const userHash = generateHash();
     userCache.otp_counter = Number(userCache.otp_counter) + 1;
+    console.log('user Hash', userHash);
 
     const passcode = Hotp.generatePasscode(
       {
@@ -230,14 +231,22 @@ export class AuthUserService {
       this.OTPConfig,
     );
 
+    console.log(passcode);
     await this.cacheService.remove(this.getOTPCacheKey(hash));
+    await this.cacheService.remove(this.getUserKey(hash));
+
     await this.cacheService.set(
       this.getOTPCacheKey(userHash),
+      true,
+      this.config.otpExpires,
+    );
+
+    await this.cacheService.set(
+      this.getUserKey(userHash),
       {
-        name: userCache.name,
-        email: userCache.email,
-        phone: userCache.phone,
+        ...userCache,
         otp_counter: userCache.otp_counter,
+        otp_secret: userCache.otp_secret,
       },
       this.config.otpExpires,
     );

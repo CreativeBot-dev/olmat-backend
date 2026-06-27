@@ -10,13 +10,13 @@ export class EmailOtpListener {
 
   @OnEvent(AUTH_EVENT.AUTH_OTP)
   async handleEmailOtpEvent(event: EmailOTPEvent) {
-    const template = `Berikut adalah kode otp anda: [passcode]`;
+    const template = `Berikut adalah kode otp akun olmat anda: [passcode]`;
 
     this.mailerService
       .sendMail({
         to: event.email,
-        from: 'olmatuinsa@olmat-uinsa.com',
-        subject: 'Kode OTP Olmat UINSA',
+        from: process.env.MAIL_USER,
+        subject: 'Olmat UINSA - Kode OTP',
         text: template.replace('[passcode]', event.passcode),
       })
       .then(() => {
