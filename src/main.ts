@@ -19,7 +19,15 @@ import * as path from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    cors: true,
+    cors: {
+      origin: [
+        'http://103.181.182.164:3002',
+        'https://admin.olmat-uinsa.online',
+        'http://localhost:3002',
+        'http://localhost:3000',
+      ],
+      credentials: true,
+    },
   });
   app.useStaticAssets(path.join(__dirname, '../storage/'));
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
