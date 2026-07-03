@@ -25,6 +25,7 @@ async function bootstrap() {
         'https://admin.olmat-uinsa.online',
         'http://localhost:3002',
         'http://localhost:3000',
+        'http://localhost:3088',
       ],
       credentials: true,
     },
