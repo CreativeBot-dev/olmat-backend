@@ -14,14 +14,15 @@ import {
   XenditQRCodeRefund,
 } from 'src/vendor/xendit/interfaces/qrcode.interface';
 import { XenditService } from 'src/vendor/xendit/xendit.service';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
+import { PaymentGateway } from './payment.gateway';
 
 @Injectable()
 export class WebhookService {
   constructor(
     @InjectRepository(Payments)
-    private orderPaymentRepository: Repository<Payments>,
     private datasource: DataSource,
+    private paymentGateway: PaymentGateway,
   ) {}
 
   async handleXenditQRCode(
@@ -36,7 +37,6 @@ export class WebhookService {
         }
       case 'qr.refund':
         if (XenditService.isXenditQRCodeRefund(payload.data)) {
-          //qrpy is from id qrstring what to set in reference
           await this.refund(payload.data.qrpy_id, payload.data);
           break;
         }
@@ -73,9 +73,10 @@ export class WebhookService {
           participant.status = ParticipantStatus.ACTIVE;
         }),
       );
-      await queryRunner.manager.save(payment.participants);
 
+      await queryRunner.manager.save(payment.participants);
       await queryRunner.commitTransaction();
+      this.paymentGateway.emitPaymentPaid(invoice);
     } catch (error) {
       console.log(error);
       await queryRunner.rollbackTransaction();
