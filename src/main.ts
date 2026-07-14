@@ -18,18 +18,16 @@ import { UserCLientModules } from './app-client/module';
 import * as path from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    cors: {
-      origin: [
-        'http://103.181.182.164:3002',
-        'https://admin.olmat-uinsa.online',
-        'http://localhost:3002',
-        'http://localhost:3000',
-        'http://localhost:3088',
-      ],
-      credentials: true,
-    },
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  const isDev = process.env.NODE_ENV !== 'production';
+  app.enableCors({
+    origin: isDev
+      ? true
+      : ['https://admin.olmat-uinsa.online', 'https://olmat-uinsa.online'],
+    credentials: true,
   });
+
   app.useStaticAssets(path.join(__dirname, '../storage/'));
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
   const configService = app.get(ConfigService<AllConfigType>);
