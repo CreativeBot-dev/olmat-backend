@@ -27,7 +27,7 @@ export class EmailForgotPassListener {
     try {
       await this.mailerService.sendMail({
         to: event.email,
-        from: '"OLMAT UINSA" <olmatuinsa@olmat-uinsa.com>',
+        from: process.env.MAIL_USER,
         subject: 'Reset Password OLMAT UINSA',
         context: {
           // data to be sent to the template

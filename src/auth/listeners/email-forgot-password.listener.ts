@@ -121,7 +121,7 @@ export class EmailForgotPasswordListener {
     this.mailerService
       .sendMail({
         to: event.email,
-        from: 'olmatuinsa@olmat-uinsa.com',
+        from: process.env.MAIL_USER,
         subject: 'Link Lupa Password Olmat UINSA',
         // text: template.replace(
         //   '[link]',
